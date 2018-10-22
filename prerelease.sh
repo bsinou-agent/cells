@@ -1,3 +1,4 @@
+
 #!/bin/bash
 
 # call
@@ -9,7 +10,6 @@ DFLT_REPO_ID=cells
 DFLT_FROM_BRANCH=master
 
 #OAUTH_TOKEN=atokenthatshouldwork....
-PROMPT='$ '
 
 echo ""
 echo "Welcome to Cells Release procedure."
@@ -18,24 +18,19 @@ echo ""
 
 ## Retrieve git coordinates for the code to release
 
-echo -n "   Please enter the git user name that will be used$PROMPT"
-read line
-if [ "x`printf '%s' "$line" | tr -d "$IFS"`" = x ]; then
+read -p "   Please enter the git user name that will be used: " GIT_USER
+if [ "x`printf '%s' "$GIT_USER" | tr -d "$IFS"`" = x ]; then
     echo "You should provide a valid user name."
     echo "Aborting process"
     exit 1
 fi 
-GIT_USER=$line 
 
-DFLT_REPO_OWNER=pydio
-DFLT_REPO_ID=cells
-
-read -p "   Please enter repository owner. (default: $DFLT_REPO_OWNER)" REPO_OWNER
+read -p "   Please enter repository owner. (default: $DFLT_REPO_OWNER): " REPO_OWNER
 if [ "x`printf '%s' "$REPO_OWNER" | tr -d "$IFS"`" = x ]; then
     REPO_OWNER=$DFLT_REPO_OWNER
 fi
 
-read -p "   Please enter repository ID. (default: $DFLT_REPO_ID)" REPO_ID
+read -p "   Please enter repository ID. (default: $DFLT_REPO_ID): " REPO_ID
 if [ "x`printf '%s' "$REPO_ID" | tr -d "$IFS"`" = x ]; then
     REPO_ID=$DFLT_REPO_ID
 fi
@@ -45,9 +40,8 @@ API_URL="https://api.github.com"
 
 ## Retrieve release info
 
-echo -n "   Which branch do you want to use as source (default: $DFLT_FROM_BRANCH)$PROMPT"
-read line
-if [ "x`printf '%s' "$line" | tr -d "$IFS"`" = x ]; then
+read -p "   Which branch do you want to use as source (default: $DFLT_FROM_BRANCH): " FROM_BRANCH
+if [ "x`printf '%s' "$FROM_BRANCH" | tr -d "$IFS"`" = x ]; then
     FROM_BRANCH=$DFLT_FROM_BRANCH
 fi 
 
@@ -67,26 +61,22 @@ revision=`expr $revision + 1`
 
 new_version="$major.$minor.$revision"
 
-echo -n "   Last version is $last_version, which version do you want to release now (default: "$new_version")$PROMPT"
-read line
-if ! [ "x`printf '%s' "$line" | tr -d "$IFS"`" = x ]; then
+read -p "   Last version is $last_version, which version do you want to release now (default: "$new_version"): " u_version
+if ! [ "x`printf '%s' "$u_version" | tr -d "$IFS"`" = x ]; then
     # TODO validate format
-    new_version=$line
+    new_version=$u_version
 fi 
 NEW_TAG=v$new_version
 
 VERSION=$new_version
 TMP_BRANCH=pre-release-$VERSION
 
-echo -n "   Please provide a short description for this release$PROMPT"
-read line
-if [ "x`printf '%s' "$line" | tr -d "$IFS"`" = x ]; then
+read -p "   Please provide a short description for this release: " SHORT_DESC
+if [ "x`printf '%s' "$SHORT_DESC" | tr -d "$IFS"`" = x ]; then
     echo "Description cannot be empty."
     echo "Aborting process"
     exit 1
 fi 
-
-SHORT_DESC=$line 
 
 # TODO add a few more checks
 # - check if GIT_URL == origin
@@ -112,9 +102,8 @@ git tag -a $NEW_TAG -m "$NEW_TAG"
 
 ## Confirm and publish on github
 createReleaseUrl="$API_URL/repos/$REPO_OWNER/$REPO_ID/releases"
-echo "Release URL $createReleaseUrl"; 
 
-read -p "You are about to push your modifications. Are you sure you want to proceed? (y/n, default is yes)?" choice
+read -p "You are about to push your modifications. Are you sure you want to proceed? (y/n, default is yes): " choice
 case "$choice" in 
   y|Y|'' ) ;;
   n|N|* ) 
@@ -130,11 +119,15 @@ esac
 git push origin $TMP_BRANCH
 git push origin $NEW_TAG
 
+# Prepare and pre-publish release note on Github
+md_changes="\n\n##Change log\n\nYou can find [a summary of the change log here]($GIT_URL/compare/$PREVIOUS_TAG...$NEW_TAG).\n"
+json="{\"tag_name\": \"$NEW_TAG\",\"target_commitish\": \"$TMP_BRANCH\",\"name\": \"$NEW_TAG\",\"body\": \"$SHORT_DESC $md_changes\",\"draft\": false, \"prerelease\": true}"
 
-# Prepare and pre-publish release note on Github  
-json="{\"tag_name\": \"$NEW_TAG\",\"target_commitish\": \"$TMP_BRANCH\",\"name\": \"$NEW_TAG\",\"body\": \"$SHORT_DESC\",\"draft\": true, \"prerelease\": true}"
-echo $json
-echo $json | curl -v -H "Authorization: token $OAUTH_TOKEN" --header "Content-Type: application/json" --request POST --data @- $GIT_URL
+echo "Creating release @ $createReleaseUrl with json: $json"
+echo $json | curl -v -H "Authorization: token $OAUTH_TOKEN" --header "Content-Type: application/json" --request POST --data @- $createReleaseUrl
 
 echo "Pre-release done."
 date
+
+
+
