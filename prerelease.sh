@@ -1,9 +1,7 @@
 #!/bin/bash
 
-
 # call
 # env OAUTH_TOKEN=yourtoken ./prerelease.sh
-
 
 # Default Values
 DFLT_GIT_OWNER=pydio
@@ -89,7 +87,7 @@ SHORT_DESC=$line
 date
 echo "About to release "$VERSION" on "$GIT_URL": "$SHORT_DESC
 
-## Prepare release in github
+## Prepare release in a local branch
 git fetch origin
 git checkout stable
 git checkout -b $TMP_BRANCH
@@ -100,6 +98,17 @@ env VERSION=$VERSION ./changelog.sh
 git add -A
 git commit -am "Release $NEW_TAG"
 git tag -a $NEW_TAG -m "$NEW_TAG"
+
+
+## Confirm and publish on github
+read -p "You are about to push your modification. Are you sure you want to proceed? (y/n, default is yes)?" choice
+case "$choice" in 
+  y|Y ) ;;
+  '' ) ;;
+  n|N ) echo "no"; exit 0;;
+  * ) echo "invalid"; exit 1;;
+esac
+
 git push origin $TMP_BRANCH
 git push origin $NEW_TAG
 
@@ -109,5 +118,3 @@ echo $json | curl -H "Authorization: token $OAUTH_TOKEN" --header "Content-Type:
 
 echo "Pre-release done."
 date
-
-
