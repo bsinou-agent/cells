@@ -27,7 +27,7 @@ if [ "x`printf '%s' "$line" | tr -d "$IFS"`" = x ]; then
 fi 
 GIT_USER=$line 
 
-=pydio
+DFLT_REPO_OWNER=pydio
 DFLT_REPO_ID=cells
 
 read -p "   Please enter repository owner. (default: $DFLT_REPO_OWNER)" REPO_OWNER
