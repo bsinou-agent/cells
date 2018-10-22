@@ -4,13 +4,12 @@
 # env OAUTH_TOKEN=yourtoken ./prerelease.sh
 
 # Default Values
-DFLT_GIT_OWNER=pydio
-DFLT_REPO=cells
+DFLT_REPO_OWNER=bsinou-agent
+DFLT_REPO_ID=cells
 DFLT_FROM_BRANCH=master
 
 #OAUTH_TOKEN=atokenthatshouldwork....
 PROMPT='$ '
-
 
 echo ""
 echo "Welcome to Cells Release procedure."
@@ -26,11 +25,15 @@ if [ "x`printf '%s' "$line" | tr -d "$IFS"`" = x ]; then
     echo "Aborting process"
     exit 1
 fi 
-
 GIT_USER=$line 
 
-GIT_URL="https://$GIT_USER@github.com/$DFLT_REPO/$DFLT_GIT_OWNER"
+# TODO: Make this configurable 
+REPO_OWNER=$DFLT_REPO_OWNER
+REPO_ID=$DFLT_REPO_ID
 
+
+GIT_URL="https://$GIT_USER@github.com/$REPO_OWNER/$REPO_ID"
+API_URL="https://api.github.com"
 
 ## Retrieve release info
 
@@ -85,7 +88,7 @@ SHORT_DESC=$line
 # ...
 
 date
-echo "About to release "$VERSION" on "$GIT_URL": "$SHORT_DESC
+echo "About to release $VERSION on $GIT_URL: $SHORT_DESC"
 
 ## Prepare release in a local branch
 git fetch origin
@@ -99,18 +102,26 @@ git add -A
 git commit -am "Release $NEW_TAG"
 git tag -a $NEW_TAG -m "$NEW_TAG"
 
-
 ## Confirm and publish on github
-read -p "You are about to push your modification. Are you sure you want to proceed? (y/n, default is yes)?" choice
+createReleaseUrl = "$API_URL/repos/$REPO_OWNER/$REPO_ID/releases"
+echo "Release URL $createReleaseUrl"; 
+
+read -p "You are about to push your modifications. Are you sure you want to proceed? (y/n, default is yes)?" choice
 case "$choice" in 
-  y|Y ) ;;
-  '' ) ;;
-  n|N ) echo "no"; exit 0;;
-  * ) echo "invalid"; exit 1;;
+  y|Y|'' ) ;;
+  n|N|* ) 
+    echo "Aborting, nothing has been pushed to origin."; 
+    echo "You should revert local change by issuing following commands:"
+    echo "git tag -a $NEW_TAG ## <= Remove tag"
+    echo "git checkout master"
+    echo "git branch -D $TMP_BRANCH ## <= Delete tmp branch"
+    exit 0
+    ;;
 esac
 
 git push origin $TMP_BRANCH
 git push origin $NEW_TAG
+
 
 # Prepare and pre-publish release note on Github  
 json="{\"tag_name\": \"$NEW_TAG\",\"target_commitish\": \"$TMP_BRANCH\",\"name\": \"$NEW_TAG\",\"body\": \"$SHORT_DESC\",\"draft\": true, \"prerelease\": true}"
