@@ -4,7 +4,7 @@
 # env OAUTH_TOKEN=yourtoken ./prerelease.sh
 
 # Default Values
-DFLT_REPO_OWNER=bsinou-agent
+DFLT_REPO_OWNER=pydio
 DFLT_REPO_ID=cells
 DFLT_FROM_BRANCH=master
 
@@ -27,17 +27,25 @@ if [ "x`printf '%s' "$line" | tr -d "$IFS"`" = x ]; then
 fi 
 GIT_USER=$line 
 
-# TODO: Make this configurable 
-REPO_OWNER=$DFLT_REPO_OWNER
-REPO_ID=$DFLT_REPO_ID
+=pydio
+DFLT_REPO_ID=cells
 
+read -p "   Please enter repository owner. (default: $DFLT_REPO_OWNER)" REPO_OWNER
+if [ "x`printf '%s' "$REPO_OWNER" | tr -d "$IFS"`" = x ]; then
+    REPO_OWNER=$DFLT_REPO_OWNER
+fi
+
+read -p "   Please enter repository ID. (default: $DFLT_REPO_ID)" REPO_ID
+if [ "x`printf '%s' "$REPO_ID" | tr -d "$IFS"`" = x ]; then
+    REPO_ID=$DFLT_REPO_ID
+fi
 
 GIT_URL="https://$GIT_USER@github.com/$REPO_OWNER/$REPO_ID"
 API_URL="https://api.github.com"
 
 ## Retrieve release info
 
-echo -n "   Which branch do you want to use as source (default: "$DFLT_FROM_BRANCH")$PROMPT"
+echo -n "   Which branch do you want to use as source (default: $DFLT_FROM_BRANCH)$PROMPT"
 read line
 if [ "x`printf '%s' "$line" | tr -d "$IFS"`" = x ]; then
     FROM_BRANCH=$DFLT_FROM_BRANCH
@@ -103,7 +111,7 @@ git commit -am "Release $NEW_TAG"
 git tag -a $NEW_TAG -m "$NEW_TAG"
 
 ## Confirm and publish on github
-createReleaseUrl = "$API_URL/repos/$REPO_OWNER/$REPO_ID/releases"
+createReleaseUrl="$API_URL/repos/$REPO_OWNER/$REPO_ID/releases"
 echo "Release URL $createReleaseUrl"; 
 
 read -p "You are about to push your modifications. Are you sure you want to proceed? (y/n, default is yes)?" choice
@@ -112,7 +120,7 @@ case "$choice" in
   n|N|* ) 
     echo "Aborting, nothing has been pushed to origin."; 
     echo "You should revert local change by issuing following commands:"
-    echo "git tag -a $NEW_TAG ## <= Remove tag"
+    echo "git tag -d $NEW_TAG ## <= Remove tag"
     echo "git checkout master"
     echo "git branch -D $TMP_BRANCH ## <= Delete tmp branch"
     exit 0
