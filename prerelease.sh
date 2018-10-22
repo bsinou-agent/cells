@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 # call
@@ -18,12 +17,12 @@ echo ""
 
 ## Retrieve git coordinates for the code to release
 
-read -p "   Please enter the git user name that will be used: " GIT_USER
-if [ "x`printf '%s' "$GIT_USER" | tr -d "$IFS"`" = x ]; then
-    echo "You should provide a valid user name."
-    echo "Aborting process"
-    exit 1
-fi 
+#read -p "   Please enter the git user name that will be used: " GIT_USER
+#if [ "x`printf '%s' "$GIT_USER" | tr -d "$IFS"`" = x ]; then
+#    echo "You should provide a valid user name."
+#    echo "Aborting process"
+#    exit 1
+#fi 
 
 read -p "   Please enter repository owner. (default: $DFLT_REPO_OWNER): " REPO_OWNER
 if [ "x`printf '%s' "$REPO_OWNER" | tr -d "$IFS"`" = x ]; then
@@ -35,7 +34,8 @@ if [ "x`printf '%s' "$REPO_ID" | tr -d "$IFS"`" = x ]; then
     REPO_ID=$DFLT_REPO_ID
 fi
 
-GIT_URL="https://$GIT_USER@github.com/$REPO_OWNER/$REPO_ID"
+#GIT_URL="https://$GIT_USER@github.com/$REPO_OWNER/$REPO_ID"
+GIT_URL="https://github.com/$REPO_OWNER/$REPO_ID"
 API_URL="https://api.github.com"
 
 ## Retrieve release info
@@ -120,7 +120,7 @@ git push origin $TMP_BRANCH
 git push origin $NEW_TAG
 
 # Prepare and pre-publish release note on Github
-md_changes="\n\n##Change log\n\nYou can find [a summary of the change log here]($GIT_URL/compare/$PREVIOUS_TAG...$NEW_TAG).\n"
+md_changes="\n\n## Change log\n\nYou can find [a summary of the change log here]($GIT_URL/compare/$PREVIOUS_TAG...$NEW_TAG).\n"
 json="{\"tag_name\": \"$NEW_TAG\",\"target_commitish\": \"$TMP_BRANCH\",\"name\": \"$NEW_TAG\",\"body\": \"$SHORT_DESC $md_changes\",\"draft\": false, \"prerelease\": true}"
 
 echo "Creating release @ $createReleaseUrl with json: $json"
@@ -128,6 +128,17 @@ echo $json | curl -v -H "Authorization: token $OAUTH_TOKEN" --header "Content-Ty
 
 echo "Pre-release done."
 date
+
+exit 0
+
+# Finalise release 
+git pull origin $TMP_BRANCH
+git checkout stable
+git merge $TMP_BRANCH
+git push origin stable
+git push -d origin $TMP_BRANCH
+git branch -d $TMP_BRANCH
+
 
 
 
