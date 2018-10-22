@@ -133,7 +133,8 @@ git push origin $NEW_TAG
 
 # Prepare and pre-publish release note on Github  
 json="{\"tag_name\": \"$NEW_TAG\",\"target_commitish\": \"$TMP_BRANCH\",\"name\": \"$NEW_TAG\",\"body\": \"$SHORT_DESC\",\"draft\": true, \"prerelease\": true}"
-echo $json | curl -H "Authorization: token $OAUTH_TOKEN" --header "Content-Type: application/json" --request POST --data @- $GIT_URL
+echo $json
+echo $json | curl -v -H "Authorization: token $OAUTH_TOKEN" --header "Content-Type: application/json" --request POST --data @- $GIT_URL
 
 echo "Pre-release done."
 date
